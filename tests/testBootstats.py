@@ -1,6 +1,7 @@
 import unittest
 from . import core
 import bootstats as boot
+import os
 
 
 #===============================================================================
@@ -15,7 +16,7 @@ class AbstractBootstrapper(core.AbstractBootstrapper):
   def test7_equalness(self):
     """
     Checks wheter the equal method correcly identifies equal 'Bootstrapper'
-    instances.
+    instances. This includes the parameters, indicies and data members.
     """
     # Check self
     self.assertTrue(self.boot == self.boot)
@@ -30,29 +31,75 @@ class AbstractBootstrapper(core.AbstractBootstrapper):
     for key in ["NSamples", "NSize", "NBinSize"]:
       pars = baseKeys.copy()
       pars[key] +=1
-      boot = type(self.boot)(self.data, **baseKeys)
+      bs = type(self.boot)(self.data, **baseKeys)
       self.assertFalse(
-        boot == self.boot, 
+        bs == self.boot, 
         msg="Equal test failed for key: {}".format(key)
       )
 
     # Check for different data
     data = self.data.copy()
     data[0,0] += 1
-    boot = type(self.boot)(data, **baseKeys)
+    bs = type(self.boot)(data, **baseKeys)
     self.assertFalse(
-      boot == self.boot, 
+      bs == self.boot, 
       msg="Equal test failed for different data".format(key)
     )
 
     # Check for different indices
     indices = self.boot.indices.copy()
     indices[0,0] += 1
-    boot = type(self.boot)(self.data, indices=indices, NBinSize=self.NBinSize)
+    bs = type(self.boot)(self.data, indices=indices, NBinSize=self.NBinSize)
     self.assertFalse(
-      boot == self.boot, 
+      bs == self.boot, 
       msg="Equal test failed for different data".format(key)
     )
+
+
+  #-------------------------------
+  def test8_exportImport(self):
+    """
+    Checks wheter output and reading produces the same result. Also checks if 
+    exceptions work properly.
+    """
+    # Export file
+    h5Info = {
+      "fileName": "testExport.h5",
+      "groupName": "ensemble1"
+    }
+    self.boot.exportHDF5(**h5Info)
+    # Read file
+    bs = type(self.boot)(self.data, h5Info=h5Info)
+    self.assertEqual(
+      bs,
+      self.boot, 
+      msg="Could not reproduce Bootstrapper after export"
+    )
+
+    # Check that overwriting is not possible
+    with self.assertRaises(KeyError) as cm:
+      bs.exportHDF5(**h5Info)
+    # Check if groupName was the issue
+    self.assertEqual(
+      cm.exception.args[1], h5Info["groupName"],
+      msg="Overwriting did not raise expected exception."
+    )
+
+    # Test writing sample
+    h5Info["groupName"] = "ensemble2"
+    bs.exportHDF5(writeSamples=True, **h5Info)
+    # Open file
+    bootAddress = os.path.join("/", h5Info["groupName"], "bootstrap")
+    with boot.h5py.File(h5Info["fileName"], "r") as f:
+      bootGroup = f.get(bootAddress)
+      ## Read NBinSize
+      samples = bootGroup.get("samples").value
+
+    # Compute difference
+    diff = core.np.mean(core.np.abs( samples - bs.samples ))/core.np.mean(
+      core.np.abs(bs.samples)
+    )
+    self.assertLess(diff, core.NUMPREC, msg="Exportation of samples failed.")
 
 
 #===============================================================================
@@ -109,6 +156,13 @@ class TestBootstrapperComplex(unittest.TestCase, core.AbstractBootstrapper):
     )
 #===============================================================================
 
+
+#===============================================================================
+def tearDownModule():
+  """Remove temporary files"""
+  if os.path.exists('testExport.h5'):
+    os.remove('testExport.h5')
+#===============================================================================
 
 
 #===============================================================================

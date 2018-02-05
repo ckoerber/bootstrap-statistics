@@ -355,8 +355,11 @@ class Bootstrapper(object):
         baseGroup = f.create_group(baseAddress)
       # Check wether bootstrap data exists
       if "bootstrap" in baseGroup.keys():
-        raise KeyError("Group 'bootstrap' already exist for base " + \
-          "group {}. Stop writing".format(groupName)
+        raise KeyError(
+          "Group >bootstrap< already exist for base group >{}<. Stop writing".format(
+            groupName
+          ),
+          groupName
         )
       bootGroup = f.create_group(bootAddress)
 
