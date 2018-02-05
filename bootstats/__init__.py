@@ -17,22 +17,128 @@ class Bootstrapper(object):
     NSamples=None, 
     NSize=None, 
     NBinSize=None, 
-    indices=None
+    indices=None,
+    h5Info=None,
   ):
     """
-    Initialize the 'Bootstrapper'.
-    This must be done by either specifying 
-      - [data, NSamples, NSize, NBinSize], or
-      - [data, indices, NBinSize]
+    Bootstrapper class which can be used to compute the bootstrapped 
+    distribution of the means of input data 'data'. If 'NBinSize' is larger than
+    one, the input data will be binned before it is sampled.
 
-    @param data     numpy array of size NVars x NConfigs 
-    @param NSamples the number of to be drawn bootstrap samples
-    @param NSize    the size of each bootstrap sample
-    @param NBinSize the size if in which the data is binned 
-    @param indices  given set of indices (size #NSamples x #NSize)
+    The class can be initialized in three different ways:
+        1. Parameter initialization with [NSamples, NSize, NBinsize] specified,
+        2. Indices initialization with [indices, NBinSize] specified,
+        3. File initialization with h5Info specified.
+    Independent on the initialization choice, one must specify the input data.
+
+    Parameters
+    ----------
+    data : two-dimensional ndarray (NVars x NConfigs), float or complex
+        Input data which is used to compute the bootstrapped distribution of 
+        the means. The first dimension is the number of variables contained in
+        the data. It is the final goal to find the mean distribution for each 
+        variable after bootstrapping. The second dimension is the number of
+        'Configurations' -- the random values each variable is drawn from.
+
+    NSamples : integer, (initialization method 1)
+        The number of different bootstrap configurations which will be drawn
+        for the number of initial configurations. This determines the second
+        dimension of the data member 'self.samples'. The first one remains 
+        NVars.
+
+    NSize : integer, (initialization method 1)
+        The size of each bootstrap configuration. This dimension will eventually
+        be used to compute the mean of the bootstrap samples.
+        Note that it is advised to have NSize smaller than the number of bins.
+
+    NBinSize : integer (initialization method 1 and 2)
+        The size of the Bins which is applied before drawing bootstrap samples.
+        Data values are averaged in bins according to
+        'self.data[i] = mean(data[i:i+NBinSize])'.
+        This can reduce auto correlations within the data.
+
+    indices : two-dimensional ndarray (NSamples x NSize), int
+              (initialization method 2)
+        The random indices for computing the bootstrap distribution of the mean.
+        They are drawn from an uniform distribution 'U(0, NBins-1)' -- 
+        corresponding to indices for the binned data.
+
+    h5Info: dictionary with values for keys 'fileName' and 'groupName'
+            (initialization method 3)
+        Reads HDF5 files which where exported by 'self.exportHDF5'.
+        The fileName must point to a valid HDF5 file while the groupName
+        must point group conainting the exported 'bootstrap' group.
+        This reads the indices and parameters contained in the HDF5 file.
+
+    See Also
+    --------
+    'self.exportHDF5', 'self.samples'
+
+    Notes
+    -----
+    This class is a wrapper for a C++ file. Thus, the routines are more 
+    efficient than numpy routines (tested on my machine only).
+
+    Examples
+    --------
+
+    Parameter initialization:
+
+    >>> data = np.random.normal(size=[128, 2000])
+    >>> bs1  = boot.Bootstrapper(
+    >>>     data,
+    >>>     NSamples=1000,
+    >>>     NSize=400,
+    >>>     NBinSize=5,
+    >>> )
+    >>> bs1
+    Bootstrapper(NSamples=1000, NSize=400, NBinSize=5, NConfigs=2000, 
+    NVars=128, NBins=400)
+
+    Indices initialization:
+
+    >>> bs2  = boot.Bootstrapper(data, indices=bs1.indices)
+    >>> print(bs2, bs2 == bs1)
+    Bootstrapper(NSamples=1000, NSize=400, NBinSize=5, NConfigs=2000, 
+    NVars=128, NBins=400), True
+
+    H5File initialization:
+
+    >>> h5Info = {'fileName': 'bootstrap.h5', 'groupName': 'ensemble1'}
+    >>> bs1.exportHDF5(**h5Info)
+    >>> bs3 = boot.Bootstrapper(data, h5Info=h5Info)
+    >>> print(bs3, bs3 == bs1)
+    Bootstrapper(NSamples=1000, NSize=400, NBinSize=5, NConfigs=2000, 
+    NVars=128, NBins=400), True
     """
+    # Check whether input is given by HDF5 file
+    if not(h5Info is None):
+      # Check if input is correct
+      fileName  = h5Info.get("fileName")
+      groupName = h5Info.get("groupName")
+      if fileName is None or groupName is None:
+        raise KeyError(
+          "To load a 'Bootstrapper' from a HDF5 file, you must specify the keys"
+          + " 'fileName' and 'groupName'."
+        )
+
+      # Open group
+      bootAddress = os.path.join("/", groupName, "bootstrap")
+      with h5py.File(fileName, "r") as f:
+        bootGroup = f.get(bootAddress)
+        # Check wether group exists
+        if bootGroup is None:
+          raise KeyError("Could not open group: {}".format(bootAddress))
+
+        # Read file
+        ## Read NBinSize
+        NBinSize = bootGroup.get("NBinSize").value
+        ## Read indices
+        indices = bootGroup.get("indices").value
+
     # initialize the C++ object
     # Check data type
+    data = np.array(data)
     if isinstance(data[0,0], float):
       self.boot = PyBootstrap.DoubleBootstrapper(
         data, 
@@ -59,21 +165,23 @@ class Bootstrapper(object):
     self.NSize    = self.boot.NSize
     ## The number of configurations contained in one bin.
     self.NBinSize = self.boot.NBinSize
-    ## The number of configurations in the ensemble. This is the first dimension of the input array.
+    ## The number of configurations in the ensemble. 
+    ## This is the first dimension of the input array.
     self.NConfigs = self.boot.NConfigs
-    ## The number of variables in the ensemble. Second dimension of the input array.
+    ## The number of variables in the ensemble.
+    ## Second dimension of the input array.
     self.NVars    = self.boot.NVars
-    ## The number of bins given by #NConfigs/#NBinSize.
-    ## In case mod(#NConfigs, #NBinSize) != 0, the remainder is skipped at the 
+    ## The number of bins given by 'NConfigs/NBinSize'.
+    ## In case 'NConfigs % NBinSize != 0', the remainder is skipped at the 
     #  beginning of the input data array.
     self.NBins    = self.boot.NBins
-    ## The binned data of size #NVars x #NBins.
+    ## The binned data of size 'NVars x NBins'.
     # Note that this is not the input data.
     self.data     = self.boot.data
-    ## The bootstrap indicies of size #NSamples x #NSize.
+    ## The bootstrap indicies of size 'NSamples x NSize'.
     self.indices  = self.boot.indices
-    ## Returns the mean of the #data.
-    # \note This mean is also equal to the mean of the input data modulo the 
+    ## Returns the mean of the 'data'.
+    # Note: This mean is also equal to the mean of the input data modulo the 
     # binning cutoff.
     self.mean     = self.boot.mean
 
@@ -92,13 +200,24 @@ class Bootstrapper(object):
 
   #------------------
   def _getSamples(self):
-    """!
-    Compute the bootstrap samples of size 'self.NVars x self.NSamples'.
-    This routines uses 'self.indices' to reshape 'self.data' before averaging.
-    The averaged out dimension is 'self.NSize'.
+    """
+    Return the bootstrap samples.
 
+    Returns
+    ----------
+    out : ndarray
+        The bootstrap samples of size 'self.NVars x self.NSamples'.
+        This routines uses 'self.indices' to reshape 'self.data' before 
+        averaging. The averaged out dimension is 'self.NSize'.
+
+    Notes
+    -----
     This is the most expensive computation. The output array is not stored
     within this class. Make sure, if you want to use it, to store it elsewhere.
+
+    See Also
+    --------
+    'samples'
     """
     return self.boot._getSamples()
 
@@ -106,10 +225,17 @@ class Bootstrapper(object):
   @property
   def samples(self):
     """
-    The bootstrap samples of size 'self.NVars x self.NSamples'.
-    This routines uses 'self.indices' to reshape 'self.data' before averaging.
-    The averaged out dimension is 'self.NSize'.
+    Return the bootstrap samples.
 
+    Returns
+    ----------
+    out : ndarray
+        The bootstrap samples of size 'self.NVars x self.NSamples'.
+        This routines uses 'self.indices' to reshape 'self.data' before 
+        averaging. The averaged out dimension is 'self.NSize'.
+
+    Notes
+    -----
     This is the most expensive computation. For this reason this array
     is initialized only after accesing this member and stored afterwards.
     """
@@ -127,12 +253,23 @@ class Bootstrapper(object):
 
   #------------------
   def __repr__(self):
+    """Returns str(self)"""
     return str(self)
 
   #------------------
   def __eq__(self, other):
     """
     Compares wheter the other has the same input parameter and data.
+
+    Parameters
+    ----------
+    other : arbitrary
+        If instance of 'Bootstrapper' checks 'self.parameters', 'self.indices' 
+        and 'self.data',  else returns 'False'.
+
+    Returns
+    ----------
+    out : boolean
     """
     # Check whether other is Bootstrapper
     if not(isinstance(other, Bootstrapper)):
@@ -157,7 +294,42 @@ class Bootstrapper(object):
   #------------------
   def exportHDF5(self, fileName, groupName=None, writeSamples=False):
     """
-    
+    Exports the bootstrap data to the HDF5 file 'fileName'.
+
+    It exports the 'parameters' as well as the indices to the group
+    >>> groupAddress = '/' + groupName + '/bootstrap'
+
+    Parameters
+    ----------
+    fileName : string
+        Address pointing to the export HDF5 file. If this file exists,
+        the routine appends, otherwise it writes.
+
+    groupName : string, optional
+        Group name (can include subgroups) to write to. If this group already 
+        exists in the file, it opens the group. Otherwise, this routine will
+        create the group. If this group also includes a group 'bootstrap', this
+        routines raises an error.
+
+    writeSamples : boolean, optional
+        If set to true, also exports the computed samples to the hdf5 file.
+
+    See Also
+    --------
+    Bootstrapper initialization
+
+    Notes
+    -----
+    This routine does not store the initial data. For full reproducability,
+    the data must be exported elsewhere.
+
+    Examples
+    --------
+    >>> h5Info = {'fileName': 'bootstrap.h5', 'groupName': 'ensemble1'}
+    >>> bs1.exportHDF5(**h5Info)
+    >>> bs2 = boot.Bootstrapper(data, h5Info=h5Info)
+    >>> bs2 == bs1
+    True
     """
     # Check if already in hdf5 file first
     if os.path.exists(fileName):
