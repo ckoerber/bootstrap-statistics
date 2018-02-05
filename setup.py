@@ -10,7 +10,7 @@ def readme():
     return f.read()
 
 # Requirements
-installRequires = ["numpy", "cython"]
+installRequires = ["numpy", "cython", "h5py"]
 
 #-------Building the C++ extension---------
 sources          = ["bootstats/PyBootstrap.pyx", "bootstats/Bootstrap.cpp",]
