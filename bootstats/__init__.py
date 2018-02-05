@@ -82,8 +82,11 @@ class Bootstrapper(object):
       "NVars":    self.NVars,
     }
 
+    ## Dictionary containing informative parameters
+    self._samples = None
+
   #------------------
-  def getSamples(self):
+  def _getSamples(self):
     """!
     Compute the bootstrap samples of size #NVars x #NSamples.
     This routines uses #indices to reshape #data.
@@ -92,20 +95,22 @@ class Bootstrapper(object):
     This is the most expensive computation. The output array is not stored
     within this class. Make sure, if you want to use it, to store it elsewhere.
     """
-    return self.boot.getSamples()
+    return self.boot._getSamples()
 
   #------------------
-  def getCov(self, samples=None):
-    """!
-    Computes the covariance matrix form the bootstrap samples.
-
-    @param samples (optional) Bootstrap samples computed by #getSamples()
-
-    This function also calls #getSamples() in case you do not specify the
-    covariance matrix. Thus, in case you are interested in the samples as well,
-    better call #getSamples() and feed it to this method.
+  @property
+  def samples(self):
     """
-    return self.boot.getCov(samples=samples)
+    The bootstrap samples of size #NVars x #NSamples.
+    This routines uses #indices to reshape #data.
+    The averaged out dimension is #NSize.
+
+    This is the most expensive computation. For this reason this array
+    is initialized only after accesing this member and stored afterwards.
+    """
+    if self._samples is None:
+      self._samples = self._getSamples()
+    return self._samples
 
   #------------------
   def __str__(self):

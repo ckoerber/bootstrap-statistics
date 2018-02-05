@@ -99,7 +99,7 @@ cdef class DoubleBootstrapper(object):
   def __repr__(self):
     return str(self)
   #------------
-  def getSamples(self):
+  def _getSamples(self):
     return np.array(self.ptr.getSamples())
   #------------
   def getCov(self, samples=None):
@@ -169,11 +169,5 @@ cdef class ComplexBootstrapper(object):
   def __repr__(self):
     return str(self)
   #------------
-  def getSamples(self):
+  def _getSamples(self):
     return np.array(self.ptr.getSamples())
-  #------------
-  def getCov(self, samples=None):
-    if samples is None:
-      return np.array(self.ptr.getCov())
-    else:
-      return np.array(self.ptr.getCov(samples))
