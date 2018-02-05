@@ -1,11 +1,6 @@
-# bootstrap-statistics
-This module contains the bootstrap statistics extension.
-Type
-```python
-import bootstats
-```
-To load the module.
-
+# Infos
+This directory contains the Python module `PyBootstrap` which can be used 
+to compute bootstrap samples of input ensembles.
 
 # Install
 In order to use this module, you have to `pip` install
