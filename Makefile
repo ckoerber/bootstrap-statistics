@@ -2,7 +2,7 @@ PIP=pip3
 PYTHON=python3
 
 # Directory which contains the C++ binaries
-cFileDir=bootstats
+cFileDir=bootstats/cFiles
 
 # All
 .PHONY: all
