@@ -7,7 +7,7 @@ cdef extern from "complex.h":
 #-----------------------------------------------------------
 # -----------------------Bootstrapper---------------------
 #-----------------------------------------------------------
-cdef extern from "Bootstrap.hpp":
+cdef extern from "cFiles/Bootstrap.hpp":
   cdef cppclass Bootstrapper[T]:
     Bootstrapper(
       const vector[vector[T]] &data, 

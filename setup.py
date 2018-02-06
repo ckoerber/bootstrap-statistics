@@ -13,7 +13,10 @@ def readme():
 installRequires = ["numpy", "cython", "h5py"]
 
 #-------Building the C++ extension---------
-sources          = ["bootstats/PyBootstrap.pyx", "bootstats/Bootstrap.cpp",]
+sources          = [
+  "bootstats/PyBootstrap.pyx", 
+  "bootstats/cFiles/Bootstrap.cpp",
+]
 language         = "c++"
 extraCompileArgs = ["-std=c++17", "-pedantic",]
 
