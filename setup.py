@@ -4,11 +4,6 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
 
-# Make readme available
-def readme():
-  with open("README.md") as f:
-    return f.read()
-
 # Requirements
 installRequires = ["numpy", "cython", "h5py"]
 
@@ -31,11 +26,14 @@ ext_modules=[
 
 #-------Building the module---------
 # Setup module
+long_description = """Python wrapper for C++ routine which computes bootstrap 
+distributions of the mean for randomly distributed variables."""
+
 setup(
   name             = "bootstrap-statistics",
   version          = "0.1",
   description      = "Python API for Bootstrapping data",
-  long_description = readme(),
+  long_description = long_description,
   author           = "Christopher Koerber",
   author_email     = "c.koerber@fz-juelich.de",
   cmdclass         = {"build_ext": build_ext},
