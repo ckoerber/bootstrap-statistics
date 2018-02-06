@@ -118,8 +118,9 @@ class TestBootstrapperDouble(unittest.TestCase, AbstractBootstrapper):
     # Init the parent classes
     super(TestBootstrapperDouble, self).__init__(*args, **kwargs)
     # Create the data array
+    self.NVars = 128 * 2 * 2
     self.data = core.np.random.normal(
-      self.mu, self.var, [self.NVars, self.NConfigs]
+      self.mu, self.var, [128, 2, 2, self.NConfigs]
     )
     # Init the cpp class
     self.boot = boot.Bootstrapper(

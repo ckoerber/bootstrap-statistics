@@ -40,7 +40,7 @@ class AbstractBootstrapper(object):
     self.assertEqual(self.NBins,    self.boot.NBins   )
 
     # Check data shape
-    self.assertEqual((self.NVars, self.NBins), self.boot.data.shape)
+    self.assertEqual((self.NVars, self.NBins), self.boot._data.shape)
 
     # Check random indices shape
     self.assertEqual((self.NSamples, self.NSize), self.boot.indices.shape)
@@ -68,7 +68,7 @@ class AbstractBootstrapper(object):
     self.assertEqual(boot.NBins,    self.boot.NBins   )
 
     # Check data shape
-    self.assertEqual((self.NVars, self.NBins), boot.data.shape)
+    self.assertEqual((self.NVars, self.NBins), boot._data.shape)
 
     # Check data equality
     ## to aggregate data and compute the mean of the absolute difference
@@ -99,12 +99,16 @@ class AbstractBootstrapper(object):
     """
     # Check if data equal
     ## Do numpy binning -> drop initial modulo bins and reshape
-    binned = self.data[:, self.NConfigs%self.NBinSize: ].reshape(
-      [self.NVars, self.NBins, self.NBinSize]
+    data = self.data.reshape(
+      [np.prod(self.data.shape[:-1]), self.data.shape[-1]]
     )
+    binned = np.average(data[:, self.NConfigs%self.NBinSize: ].reshape(
+      [self.NVars, self.NBins, self.NBinSize]
+    ), axis=2).reshape(list(self.data.shape[:-1])+ [self.NBins])
 
     ## to aggregate data and compute the mean of the absolute difference
-    dataDiff = np.average(np.abs(np.average(binned, axis=2) - self.boot.data))
+    dataDiff = np.average(
+      np.abs(binned - self.boot.data))
     self.assertLess(
       dataDiff,
       NUMPREC,
@@ -141,7 +145,7 @@ class AbstractBootstrapper(object):
     Tests wether the mean of the binned data is computed correctly.
     """
     meanDiff = np.average(np.abs(
-      np.average(self.boot.data, axis=1)-self.boot.mean
+      np.average(self.boot.data, axis=self.boot.data.ndim-1)-self.boot.mean
     ))
     self.assertLess(meanDiff, NUMPREC)
 
@@ -154,7 +158,7 @@ class AbstractBootstrapper(object):
     cppSamples = self.boot._getSamples()
     self.assertEqual( (self.NVars, self.NSamples), cppSamples.shape )
     # Check values of samples
-    numpySamples = np.average(self.boot.data[:,self.boot.indices], axis=2)
+    numpySamples = np.average(self.boot._data[:,self.boot.indices], axis=2)
     samplesDiff = np.average(np.abs( numpySamples - cppSamples ))
     self.assertLess(samplesDiff, NUMPREC)
 

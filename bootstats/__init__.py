@@ -12,11 +12,11 @@ class Bootstrapper(object):
   """Bootstrapper class for mean distribution estimation."""
   #------------------
   def __init__(
-    self, 
-    data, 
-    NSamples=None, 
-    NSize=None, 
-    NBinSize=None, 
+    self,
+    data,
+    NSamples=None,
+    NSize=None,
+    NBinSize=None,
     indices=None,
     h5Info=None,
   ):
@@ -33,11 +33,11 @@ class Bootstrapper(object):
 
     Parameters
     ----------
-    data : two-dimensional ndarray (NVars x NConfigs), float or complex
+    data : ndarray (varShape x NConfigs), float or complex
         Input data which is used to compute the bootstrapped distribution of 
-        the means. The first dimension is the number of variables contained in
+        the means. The first dimensions are the number of variables contained in
         the data. It is the final goal to find the mean distribution for each 
-        variable after bootstrapping. The second dimension is the number of
+        variable after bootstrapping. The last dimension is the number of
         'Configurations' -- the random values each variable is drawn from.
 
     NSamples : integer, (initialization method 1)
@@ -78,6 +78,8 @@ class Bootstrapper(object):
     -----
     This class is a wrapper for a C++ file. Thus, the routines are more 
     efficient than numpy routines (tested on my machine only).
+    The actual data handeled by the C++ routines are two-dimensional. This
+    wrapper reshapes the data internally.
 
     Examples
     --------
@@ -136,9 +138,20 @@ class Bootstrapper(object):
         ## Read indices
         indices = bootGroup.get("indices").value
 
+    # Flatten the data for C++ module
+    data = np.array(data)
+    if len(data.shape) > 2:
+      # Store old shape
+      self._varShape = list(data.shape[:-1])
+      # and make two-dimensional
+      data = data.reshape([np.prod(self._varShape), data.shape[-1]])
+    # If already in correct shape
+    else:
+      self._varShape = None
+
+
     # initialize the C++ object
     # Check data type
-    data = np.array(data)
     if isinstance(data[0,0], float):
       self.boot = PyBootstrap.DoubleBootstrapper(
         data, 
@@ -177,13 +190,13 @@ class Bootstrapper(object):
     self.NBins    = self.boot.NBins
     ## The binned data of size 'NVars x NBins'.
     # Note that this is not the input data.
-    self.data     = self.boot.data
+    self._data     = self.boot.data
     ## The bootstrap indicies of size 'NSamples x NSize'.
-    self.indices  = self.boot.indices
+    self._indices  = self.boot.indices
     ## Returns the mean of the 'data'.
     # Note: This mean is also equal to the mean of the input data modulo the 
     # binning cutoff.
-    self.mean     = self.boot.mean
+    self._mean     = self.boot.mean
 
     ## Dictionary containing informative parameters
     self.parameters = {
@@ -201,7 +214,7 @@ class Bootstrapper(object):
   #------------------
   def _getSamples(self):
     """
-    Return the bootstrap samples.
+    Returns the bootstrap samples.
 
     Returns
     ----------
@@ -225,12 +238,12 @@ class Bootstrapper(object):
   @property
   def samples(self):
     """
-    Return the bootstrap samples.
+    Returns the bootstrap samples.
 
     Returns
     ----------
     out : ndarray
-        The bootstrap samples of size 'self.NVars x self.NSamples'.
+        The bootstrap samples of size 'varShape x self.NSamples'.
         This routines uses 'self.indices' to reshape 'self.data' before 
         averaging. The averaged out dimension is 'self.NSize'.
 
@@ -239,15 +252,70 @@ class Bootstrapper(object):
     This is the most expensive computation. For this reason this array
     is initialized only after accesing this member and stored afterwards.
     """
+    # Compute if not already computed
     if self._samples is None:
       self._samples = self._getSamples()
-    return self._samples
+    # Reshape if required
+    if self._varShape is None:
+      return self._samples
+    else:
+      return self._samples.reshape(self._varShape + [self.NSamples])
+
+  #------------------
+  @property
+  def data(self):
+    """
+    Returns the bootstrap data after binning.
+
+    Returns
+    ----------
+    out : ndarray 'varShape x NSamples'
+    """
+    if self._varShape is None:
+      return self._data
+    else:
+      return self._data.reshape(self._varShape + [self.NBins])
+
+  #------------------
+  @property
+  def mean(self):
+    """
+    Returns the mean of the data.
+
+    Returns
+    ----------
+    out : ndarray 'varShape x NSamples'
+    
+    Note
+    ----------
+        Depending on the BinSize and the number of configurations, it can be
+        that this is different from the original data mean. This is the case 
+        because binning is applied before computing the mean and the 
+        thermalization cutoff elimnated data.
+    """
+    if self._varShape is None:
+      return self._mean
+    else:
+      return self._mean.reshape(self._varShape)
+
+  #------------------
+  @property
+  def indices(self):
+    """
+    Returns the bootstrap indices.
+
+    Returns
+    ----------
+    out : ndarray 'NSamples x NSize'
+        Indices are uniformly distributed in the interval [0, NBins).
+    """
+    return self._indices
 
   #------------------
   def __str__(self):
     """Returns name and input parameters"""
     return "Bootstrapper(" + ", ".join([
-      "{key}={val}".format(key=key, val=val) 
+      "{key}={val}".format(key=key, val=val)
         for key, val in self.parameters.items()
     ]) + ")"
 
