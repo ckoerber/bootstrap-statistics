@@ -42,5 +42,6 @@ setup(
   install_requires = installRequires,
   packages         = ['bootstats'],
   keywords         = "Bootstrap Statistics",
-  test_suite       = 'tests'
+  test_suite       = 'tests',
+  url              = "https://github.com/ckoerber/bootstrap-statistics"
 )
