@@ -13,7 +13,7 @@ sources          = [
   "bootstats/cFiles/Bootstrap.cpp",
 ]
 language         = "c++"
-extraCompileArgs = ["-std=c++17", "-pedantic",]
+extraCompileArgs = ["-std=c++14", "-pedantic", "-Wno-c++1z-extensions"]
 
 ext_modules=[
   Extension(

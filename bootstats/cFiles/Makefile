@@ -1,4 +1,4 @@
-CXXOPT=-std=c++17 -pedantic
+CXXOPT=-std=c++14 -pedantic
 CXXFLAGS=$(CXXOPT) -g -O3 -Wall -Wextra
 
 SOURCE=PyBootstrap.pyx Bootstrap.cpp Bootstrap.hpp

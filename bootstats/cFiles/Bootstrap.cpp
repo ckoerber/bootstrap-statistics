@@ -142,7 +142,7 @@ const inline vec<T> Bootstrapper<T>::getMean(const mat<T> &vals) const {
 // getMean
 template<typename T>
 const inline T Bootstrapper<T>::getMean(const vec<T> &vals) const {
-  return std::reduce(
+  return std::accumulate(
     vals.begin(), 
     vals.end(), 
     T(0)
