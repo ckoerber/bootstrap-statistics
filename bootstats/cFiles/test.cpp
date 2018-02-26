@@ -26,7 +26,7 @@ int main() {
 
   // Compute timings mean
   const double mean(
-    std::reduce(
+    std::accumulate(
       timings.begin(), 
       timings.end(), 
       double(0)
@@ -35,7 +35,7 @@ int main() {
 
   // Compute timings sdev
   const double sdev(
-    std::sqrt(std::reduce(
+    std::sqrt(std::accumulate(
       timings.begin(), 
       timings.end(), 
       double(0),
