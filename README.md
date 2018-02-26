@@ -2,15 +2,15 @@
 This repository contains a Python wrapper for a C++ routine which computes bootstrap distributions of the mean for randomly distributed variables.
 
 ## Content
-[Description](#Description)
-	1. [General idea](#General-idea)
-2. [Getting started](#Getting-started)
+1. [Description](#Description)
+2. [General idea](#General-idea)
+3. [Getting started](#Getting-started)
     1. [Perquisites](#Perquisites)
     2. [Installing](#Installing)
     3. [Running the tests](#Running-the-tests)
-3. [Usage](#Usage)
-4. [Authors](#Authors)
-5. [License](#License)
+4. [Usage](#Usage)
+5. [Authors](#Authors)
+6. [License](#License)
 
 ## <a name="Description"></a>Description
 The objective of this module to estimate mean values of random variables including the uncertainty of the estimation.
