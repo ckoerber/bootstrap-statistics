@@ -21,13 +21,18 @@ build:
 # Build a local pip module
 .PHONY: local
 local:
-	$(PIP) install .
+	$(PIP) install --user .
 
 # Build a local pip module (tracks changes)
 .PHONY: local-sym
 local-sym:
-	$(PIP) install -e .
+	$(PIP) install --user -e .
 
+
+# Build a local pip module (tracks changes)
+.PHONY: test
+test:
+	$(PYTHON) setup.py test
 
 # Clean
 .PHONY: clean
