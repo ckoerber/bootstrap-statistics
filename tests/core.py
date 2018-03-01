@@ -17,7 +17,7 @@ class AbstractBootstrapper(object):
 
   NSamples = 400
   NBinSize = 5
-  NBins    = int(NConfigs/NBinSize)
+  NBins    = max(int(NConfigs/NBinSize),1)
   NSize    = NBins
 
   mu       = 0.0
@@ -44,6 +44,21 @@ class AbstractBootstrapper(object):
 
     # Check random indices shape
     self.assertEqual((self.NSamples, self.NSize), self.boot.indices.shape)
+
+    # Instantiate new Bootstrapper without NSize
+    boot = type(self.boot)(
+      self.data, 
+      NBinSize=self.NBinSize, 
+      NSamples=self.NSamples,
+    )
+    # Check members
+    self.assertEqual(boot.NVars,    self.boot.NVars   )
+    self.assertEqual(boot.NConfigs, self.boot.NConfigs)
+    self.assertEqual(boot.NSamples, self.boot.NSamples)
+    self.assertEqual(boot.NBinSize, self.boot.NBinSize)
+    self.assertEqual(boot.NSize,    self.boot.NSize   )
+    self.assertEqual(boot.NBins,    self.boot.NBins   )
+
 
   #-------------------------------
   def test2_ConstructorIndices(self):

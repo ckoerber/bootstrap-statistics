@@ -26,7 +26,8 @@ class Bootstrapper(object):
     one, the input data will be binned before it is sampled.
 
     The class can be initialized in three different ways:
-        1. Parameter initialization with [NSamples, NSize, NBinsize] specified,
+        1. Parameter initialization with [NSamples, NSize, NBinsize] or 
+           [NSamples, NBinsize] specified,
         2. Indices initialization with [indices, NBinSize] specified,
         3. File initialization with h5Info specified.
     Independent on the initialization choice, one must specify the input data.
@@ -46,10 +47,12 @@ class Bootstrapper(object):
         dimension of the data member 'self.samples'. The first one remains 
         NVars.
 
-    NSize : integer, (initialization method 1)
+    NSize : integer or None, (initialization method 1)
         The size of each bootstrap configuration. This dimension will eventually
         be used to compute the mean of the bootstrap samples.
         Note that it is advised to have NSize smaller than the number of bins.
+        If NSize is None on initiaisation method 1, it is given by 
+        'int(len(NConfigs)/NBinSize)'.
 
     NBinSize : integer (initialization method 1 and 2)
         The size of the Bins which is applied before drawing bootstrap samples.
@@ -137,6 +140,28 @@ class Bootstrapper(object):
         NBinSize = bootGroup.get("NBinSize").value
         ## Read indices
         indices = bootGroup.get("indices").value
+    else:
+      if indices is None: # Check if not constructed by indices
+        if not(NSamples is None) and \
+           not(NBinSize is None) and \
+               NSize    is None:
+          # Set NSize to be NConfigs/NBinSize = NBins
+          NSize = max(int(data.shape[-1]/NBinSize), 1)
+
+          # Check wether numbers are in right range
+          if NSize < 1:
+            raise ValueError(
+              "NSize must be larger then zero. Received {}".format(NSize)
+            )
+          if NBinSize < 1:
+            raise ValueError(
+              "NBinSize must be larger then zero. Received {}".format(NBinSize)
+            )
+          if NSamples < 1:
+            raise ValueError(
+              "NSamples must be larger then zero. Received {}".format(NSamples)
+            )
+
 
     # Flatten the data for C++ module
     data = np.array(data)
