@@ -464,3 +464,78 @@ class Bootstrapper(object):
       # Write samples if requested
       if writeSamples:
         bootGroup.create_dataset("samples", data=self.samples)
+
+  #------------------
+  def inHDF5(self, fileName, groupName=None):
+    """
+    Checks wether the current sample was already written to the HDF5 file.
+    It does not check equalness though.
+
+    It exports the 'parameters' as well as the indices to the group
+    >>> groupAddress = '/' + groupName + '/bootstrap'
+
+    Parameters
+    ----------
+    fileName : string
+        Address pointing to the export HDF5 file. If this file exists,
+        the routine appends, otherwise it writes.
+
+    groupName : string, optional
+        Group name (can include subgroups) to check.
+
+    Returns
+    -------
+      exisitsInHDF5 : bool
+        True if the group of given name is occupied, False if not (or file does
+        not exist.)
+    """
+    return bootstrapperInHDF5(fileName, groupName=groupName)
+
+
+#-------------------------------------------------------------------------------
+def bootstrapperInHDF5(fileName, groupName=None):
+  """
+  Checks wether the current sample was already written to the HDF5 file.
+  It does not check equalness though.
+
+  It exports the 'parameters' as well as the indices to the group
+  >>> groupAddress = '/' + groupName + '/bootstrap'
+
+  Parameters
+  ----------
+  fileName : string
+      Address pointing to the export HDF5 file. If this file exists,
+      the routine appends, otherwise it writes.
+
+  groupName : string, optional
+      Group name (can include subgroups) to check.
+
+  Returns
+  -------
+    bootGroupExisits : bool
+      True if the group of given name is occupied, False if not (or file does
+      not exist.)
+  """
+  # Check wether file exists
+  if not(os.path.exists(fileName)):
+    return False
+
+  # Specify the root address for writing
+  ROOT = "/"
+  if groupName is None:
+    baseAddress = ROOT
+  else:
+    baseAddress = os.path.join(ROOT, groupName)
+
+  # And the data is stored in
+  bootAddress = os.path.join(baseAddress, "bootstrap")
+
+  # Open the HDF5 file
+  with h5py.File(fileName, "r") as f:
+    # Check whether group already exists
+    bootGroup = f.get(bootAddress)
+    bootGroupExisits = not(bootGroup is None)
+
+  # Return
+  return bootGroupExisits
+#-------------------------------------------------------------------------------

@@ -62,13 +62,51 @@ class AbstractBootstrapper(core.AbstractBootstrapper):
     Checks wheter output and reading produces the same result. Also checks if 
     exceptions work properly.
     """
-    # Export file
+    # Export file data
     h5Info = {
       "fileName": "testExport.h5",
       "groupName": "ensemble1"
     }
+    # Check wether group already exists in File
+    ## External method
+    self.assertFalse(
+      boot.bootstrapperInHDF5(**h5Info),
+      msg="Wrongly identified Bootstrapper export before export"
+    )
+    ## Class internal method
+    self.assertFalse(
+      self.boot.inHDF5(**h5Info),
+      msg="Wrongly identified Bootstrapper export before export"
+    )
+
+    # Export file
     self.boot.exportHDF5(**h5Info)
-    # Read file
+
+    # Check wether group now exists in File
+    ## External method
+    self.assertTrue(
+      boot.bootstrapperInHDF5(**h5Info),
+      msg="Wrongly did not identify Bootstrapper export after export"
+    )
+    ## Class internal method
+    self.assertTrue(
+      self.boot.inHDF5(**h5Info),
+      msg="Wrongly did not identify Bootstrapper export after export"
+    )
+
+    # Check wether different group exists in File
+    ## External method
+    self.assertFalse(
+      boot.bootstrapperInHDF5(h5Info["fileName"], groupName="notInFile"),
+      msg="Wrongly identified not written Bootstrapper export after export"
+    )
+    ## Class internal method
+    self.assertFalse(
+      self.boot.inHDF5(h5Info["fileName"], groupName="notInFile"),
+      msg="Wrongly identified not written Bootstrapper export after export"
+    )
+
+    # Test reading of file
     bs = type(self.boot)(self.data, h5Info=h5Info)
     self.assertEqual(
       bs,
