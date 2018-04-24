@@ -28,11 +28,15 @@ local:
 local-sym:
 	$(PIP) install --user -e .
 
-
-# Build a local pip module (tracks changes)
+# Run unittests
 .PHONY: test
 test:
 	$(PYTHON) setup.py test
+
+# Uninstall local pip module
+.PHONY: pip-uninstall
+pip-uninstall:
+	$(PIP) uninstall bootstrap-statistics
 
 # Clean
 .PHONY: clean
