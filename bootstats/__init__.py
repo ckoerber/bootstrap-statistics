@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import PyBootstrap
+from . import PyBootstrap
 import numpy as np
 import h5py
 import os

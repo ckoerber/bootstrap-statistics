@@ -2,6 +2,7 @@
 from setuptools import setup, find_packages
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
+import os
 
 
 # Requirements
@@ -9,15 +10,15 @@ installRequires = ["numpy", "cython", "h5py"]
 
 #-------Building the C++ extension---------
 sources          = [
-  "bootstats/PyBootstrap.pyx", 
-  "bootstats/cFiles/Bootstrap.cpp",
+  os.path.join("bootstats", "PyBootstrap.pyx"), 
+  os.path.join("bootstats", "cFiles", "Bootstrap.cpp"),
 ]
 language         = "c++"
 extraCompileArgs = ["-std=c++14", "-pedantic", "-Wno-c++1z-extensions"]
 
 ext_modules=[
   Extension(
-    "PyBootstrap",
+    os.path.join("bootstats", "PyBootstrap"),
     sources            = sources,
     language           = language,
     extra_compile_args = extraCompileArgs,
